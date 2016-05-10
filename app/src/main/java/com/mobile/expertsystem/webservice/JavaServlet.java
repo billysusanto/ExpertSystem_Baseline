@@ -17,10 +17,7 @@ public class JavaServlet extends AsyncTask<Integer, Void, String> {
     URL url;
     URLConnection urlConn;
     HttpURLConnection httpConn;
-    //String IP = "10.0.2.2"; //Localhost
-    //String IP = "192.168.0.12"; //Wifi Rumah
-    //String IP = "10.2.44.23"; //Wifi IT
-    String IP = "192.168.56.1"; //Virtual Box
+    String IP = "192.168.0.11"; //Virtual Box
     //String IP = "192.168.43.68"; //Lenovo K900
 
     String SERVLET_URL = "http://"+ IP +":8080/appengine-helloworld/";
@@ -38,6 +35,8 @@ public class JavaServlet extends AsyncTask<Integer, Void, String> {
                 urlConn = url.openConnection();
                 httpConn = (HttpURLConnection) urlConn;
 
+                httpConn.setConnectTimeout(3000);
+
                 response = httpConn.getResponseCode();
                 if (response == HttpURLConnection.HTTP_OK) {
                     InputStream is = httpConn.getInputStream();
@@ -54,8 +53,10 @@ public class JavaServlet extends AsyncTask<Integer, Void, String> {
                 }
             } catch (MalformedURLException e) {
                 Log.e("MalformedURLEx : ", e.toString());
+                return "disconnect";
             } catch (IOException e) {
                 Log.e("IOException : ", e.toString());
+                return "disconnect";
             }
         }
 
@@ -82,8 +83,10 @@ public class JavaServlet extends AsyncTask<Integer, Void, String> {
                 }
             } catch (MalformedURLException e) {
                 Log.e("MalformedURLEx : ", e.toString());
+                return "disconnect";
             } catch (IOException e) {
                 Log.e("IOException : ", e.toString());
+                return "disconnect";
             }
         }
 
@@ -109,8 +112,10 @@ public class JavaServlet extends AsyncTask<Integer, Void, String> {
                 }
             } catch (MalformedURLException e) {
                 Log.e("MalformedURLEx : ", e.toString());
+                return "disconnect";
             } catch (IOException e) {
                 Log.e("IOException : ", e.toString());
+                return "disconnect";
             }
         }
 
@@ -136,15 +141,15 @@ public class JavaServlet extends AsyncTask<Integer, Void, String> {
                 }
             } catch (MalformedURLException e) {
                 Log.e("MalformedURLEx : ", e.toString());
+                return "disconnect";
             } catch (IOException e) {
                 Log.e("IOException : ", e.toString());
+                return "disconnect";
             }
         }
 
         return msg;
     }
-
-
 
     protected void onPreExecute(){
 

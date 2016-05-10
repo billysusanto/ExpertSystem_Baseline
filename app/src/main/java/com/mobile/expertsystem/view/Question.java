@@ -14,25 +14,14 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.mobile.expertsystem.R;
+import com.mobile.expertsystem.controller.DatabaseHelper;
+import com.mobile.expertsystem.controller.XMLParser;
 import com.mobile.expertsystem.model.Gejala;
 import com.mobile.expertsystem.model.Organ;
 import com.mobile.expertsystem.webservice.JavaServlet;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-
-import java.io.IOException;
-import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 
 public class Question extends AppCompatActivity {
 
@@ -41,13 +30,11 @@ public class Question extends AppCompatActivity {
     ArrayList<RadioButton> radioButtonGejala = new ArrayList<>();
     ArrayList<TextView> textViewGejala = new ArrayList<>();
 
-
     ScrollView sv;
     LinearLayout ll;
     Button submit;
     Organ selectedOrgan = MainActivity.selectedOrgan;
 
-    //Variabel dari Singleton
     public static ArrayList <Gejala> listGejala = new ArrayList<>();
 
     JavaServlet servlet = new JavaServlet();
@@ -55,11 +42,14 @@ public class Question extends AppCompatActivity {
     Gejala gejala [];
 
     int idRadioButtonCounter = 0, idRadioGroupCounter =0;
+    DatabaseHelper dh;
+    XMLParser xmlParser = new XMLParser();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_question);
+        dh = new DatabaseHelper(this);
 
         sv = (ScrollView) findViewById(R.id.scrollViewQuestion);
         ll = new LinearLayout(this);
@@ -67,13 +57,22 @@ public class Question extends AppCompatActivity {
 
         try {
             servletResp = servlet.execute(2, selectedOrgan.getId()).get();
+            if(!servletResp.equalsIgnoreCase("disconnect")){
+                dh.resetDBGejala();
+                dh.insertGejala(servletResp);
+                Log.e("State", "ONLINE");
+            }
+            else{
+                servletResp = dh.getGejala().get(0);
+                Log.e("State", "OFFLINE");
+            }
         } catch (InterruptedException e) {
             e.printStackTrace();
         } catch (ExecutionException e) {
             e.printStackTrace();
         }
         finally{
-            gejala = xmlParserGejala(servletResp);
+            gejala = xmlParser.xmlParserGejala(servletResp);
         }
 
         for(int i=0; i<gejala.length; i++){
@@ -164,51 +163,5 @@ public class Question extends AppCompatActivity {
                 }
             }
         }
-    }
-
-    public Gejala[] xmlParserGejala(String xml){
-        try {
-            DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-
-            //replace String as InputSource
-            InputSource is = new InputSource(new StringReader(xml));
-            Document doc = dBuilder.parse(is);
-
-            doc.getDocumentElement().normalize();
-
-            NodeList nList = doc.getElementsByTagName("name");
-
-            gejala = new Gejala[nList.getLength()];
-
-            for (int i = 0; i < nList.getLength(); i++) {
-                Node nNode = nList.item(i);
-                Element e = (Element) nNode;
-
-                gejala[i] = new Gejala();
-
-                NodeList dList = nNode.getChildNodes();
-
-                gejala[i].setId(Integer.parseInt(e.getAttribute("id")));
-                gejala[i].setName(dList.item(0).getTextContent());
-
-                if (dList.getLength() > 1) {
-                    for (int j = 1; j <= dList.getLength() - 1; j++) {
-                        gejala[i].addDetail(Integer.parseInt(dList.item(j).getAttributes().getNamedItem("id").getNodeValue()),                                dList.item(j).getTextContent());
-                    }
-                }
-            }
-        }
-        catch(ParserConfigurationException e){
-            Log.e("ParseConfigExc", e.toString());
-        }
-        catch(IOException e){
-            Log.e("IOException", e.toString());
-        }
-        catch(SAXException e){
-            Log.e("SAXEXception", e.toString());
-        }
-
-        return gejala;
     }
 }

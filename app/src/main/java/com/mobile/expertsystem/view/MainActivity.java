@@ -10,24 +10,12 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
 import com.mobile.expertsystem.R;
-import com.mobile.expertsystem.model.Aturan;
+import com.mobile.expertsystem.controller.DatabaseHelper;
+import com.mobile.expertsystem.controller.XMLParser;
 import com.mobile.expertsystem.model.Organ;
 import com.mobile.expertsystem.webservice.JavaServlet;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-
-import java.io.IOException;
-import java.io.StringReader;
 import java.util.concurrent.ExecutionException;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -37,23 +25,33 @@ public class MainActivity extends AppCompatActivity {
     String organName [];
     ArrayAdapter <String> adapter;
     String servletResp;
-    //Singleton publicVar = Singleton.getInstance();
     Intent i;
 
     JavaServlet servlet = new JavaServlet();
 
-    Aturan aturan [];
+    DatabaseHelper dh;
+    XMLParser xmlParser = new XMLParser();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        dh = new DatabaseHelper(this);
         listOrgan = (ListView) findViewById(R.id.listOrgan);
 
         //Param 1 means request List of Organ, Param 2 means nothing for now (Organ's case)
         try {
             servletResp = servlet.execute(1, 0).get();
+            if(!servletResp.equalsIgnoreCase("disconnect")){
+                dh.resetDBOrgan();
+                dh.insertOrgan(servletResp);
+                Log.e("State", "ONLINE");
+            }
+            else{
+                servletResp = dh.getOrgan().get(0);
+                Log.e("State", "OFFLINE");
+            }
         }
         catch(ExecutionException e){
             e.printStackTrace();
@@ -62,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
-        organ = xmlParserOrgan(servletResp);
+        organ = xmlParser.xmlParserOrgan(servletResp);
 
         organName = new String[organ.length];
 
@@ -84,45 +82,5 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-    }
-
-    public Organ[] xmlParserOrgan(String xml){
-
-        try {
-            DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-
-            //replace String as InputSource
-            InputSource is = new InputSource(new StringReader(xml));
-            Document doc = dBuilder.parse(is);
-
-            doc.getDocumentElement().normalize();
-
-            NodeList nList = doc.getElementsByTagName("name");
-
-            organ = new Organ[nList.getLength()];
-
-            for (int i = 0; i < nList.getLength(); i++) {
-                Node nNode = nList.item(i);
-                Element e = (Element) nNode;
-
-                organ[i] = new Organ();
-
-                organ[i].setId(Integer.parseInt(e.getAttribute("id")));
-                organ[i].setName(nNode.getTextContent());
-            }
-
-        }
-        catch(ParserConfigurationException e){
-            Log.e("ParseConfigExc", e.toString());
-        }
-        catch(IOException e){
-            Log.e("IOException", e.toString());
-        }
-        catch(SAXException e){
-            Log.e("SAXEXception", e.toString());
-        }
-
-        return organ;
     }
 }
